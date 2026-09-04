@@ -1,0 +1,24 @@
+name: Databricks CI/CD
+
+on:
+  workflow_dispatch:
+
+jobs:
+  deploy-and-run:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install Databricks CLI
+        uses: databricks/setup-cli@main
+
+      - name: Validate Databricks bundle
+        run: databricks bundle validate -t dev
+
+      - name: Deploy Databricks bundle
+        run: databricks bundle deploy -t dev
+
+      - name: Run SNCF GTFS pipeline
+        run: databricks bundle run -t dev sncf_gtfs_pipeline
