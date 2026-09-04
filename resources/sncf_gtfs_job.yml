@@ -1,0 +1,86 @@
+resources:
+  jobs:
+    sncf_gtfs_pipeline:
+
+      name: SNCF_GTFS_PIPELINE
+
+      parameters:
+        - name: catalog
+          default: workspace
+
+        - name: bronze_schema
+          default: sncf_bronze
+
+        - name: silver_schema
+          default: sncf_silver
+
+        - name: gold_schema
+          default: sncf_gold
+
+        - name: landing_path
+          default: /Volumes/workspace/sncf_bronze/landing
+
+
+      tasks:
+
+        # 1. Contrôle du feed
+        - task_key: pipeline_control
+          notebook_task:
+            notebook_path: ../src/00_pipeline_control
+
+
+        # 2. Nouveau feed ?
+        - task_key: check_new_feed
+          depends_on:
+            - task_key: pipeline_control
+
+          condition_task:
+            left: "{{tasks.pipeline_control.values.pipeline_status}}"
+            op: EQUAL_TO
+            right: "NEW_FEED"
+
+
+        # 3. Bronze
+        - task_key: bronze_ingestion
+          depends_on:
+            - task_key: check_new_feed
+              outcome: "true"
+
+          notebook_task:
+            notebook_path: ../src/01_bronze_ingestion_gtfs
+
+
+        # 4. Silver
+        - task_key: silver_transformations
+          depends_on:
+            - task_key: bronze_ingestion
+
+          notebook_task:
+            notebook_path: ../src/02_silver_transformations_gtfs
+
+
+        # 5. Gold
+        - task_key: gold
+          depends_on:
+            - task_key: silver_transformations
+
+          notebook_task:
+            notebook_path: ../src/03_sncf_gold
+
+
+        # 6. Quality / Optimisation
+        - task_key: quality_optimization
+          depends_on:
+            - task_key: gold
+
+          notebook_task:
+            notebook_path: "../src/04_Optimisation_join"
+
+
+        # 7. Marquer le feed SUCCESS
+        - task_key: mark_success
+          depends_on:
+            - task_key: quality_optimization
+
+          notebook_task:
+            notebook_path: ../src/06_mark_success
