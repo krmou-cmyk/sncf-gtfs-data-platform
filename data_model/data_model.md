@@ -1,0 +1,5 @@
+DIM_STATION
+      \
+DIM_ROUTE → FACT_STOP_TIMES ← DIM_DATE
+      /            ↑
+DIM_AGENCY      DIM_SERVICE
